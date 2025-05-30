@@ -61,7 +61,8 @@ export default function FaceLogin() {
                         if (data.user) {
                             setUser(data.user); // 👈 Set the user data
                         }
-                    } catch (error) {
+                    } catch {
+                        
                         setResult('Error submitting data');
                         loginAttemptedRef.current = false;
                     } finally {
