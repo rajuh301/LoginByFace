@@ -1,23 +1,29 @@
-// pages/api/attendance.ts
-import { NextApiRequest, NextApiResponse } from 'next';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method === 'GET') {
+// GET: Fetch all attendance records with user name
+export async function GET() {
     try {
-      const attendance = await prisma.attendance.findMany({
-        include: {
-          user: { select: { name: true } },
-        },
-      });
-      res.status(200).json(attendance);
+        const attendance = await prisma.attendance.findMany({
+            include: {
+                user: {
+                    select: {
+                        name: true,
+                    },
+                },
+            },
+        });
+
+        return new Response(JSON.stringify(attendance), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+        });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Internal Server Error' });
+        console.error(error);
+        return new Response(
+            JSON.stringify({ message: "Internal Server Error" }),
+            { status: 500 }
+        );
     }
-  } else {
-    res.status(405).json({ message: 'Method Not Allowed' });
-  }
 }
