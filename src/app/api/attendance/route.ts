@@ -1,8 +1,9 @@
+// app/api/attendance/route.ts
+
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// GET: Fetch all attendance records with user name
 export async function GET() {
     try {
         const attendance = await prisma.attendance.findMany({
@@ -20,10 +21,10 @@ export async function GET() {
             headers: { "Content-Type": "application/json" },
         });
     } catch (error) {
-        console.error(error);
+        console.error("Attendance fetch error:", error);
         return new Response(
             JSON.stringify({ message: "Internal Server Error" }),
-            { status: 500 }
+            { status: 500, headers: { "Content-Type": "application/json" } }
         );
     }
 }
