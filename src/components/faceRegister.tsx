@@ -9,6 +9,7 @@ export default function FaceRegisterPage() {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [modelsLoaded, setModelsLoaded] = useState(false);
 
   // Load models
   useEffect(() => {
@@ -19,17 +20,26 @@ export default function FaceRegisterPage() {
         faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
         faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
       ]);
+      setModelsLoaded(true);
+    };
 
+    const startCamera = async () => {
       const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
       if (videoRef.current) videoRef.current.srcObject = stream;
     };
 
-    loadModels();
+    loadModels().then(startCamera);
   }, []);
 
   const handleRegister = async () => {
     setLoading(true);
     setMessage('');
+
+    if (!modelsLoaded) {
+      setMessage('Models not loaded yet.');
+      setLoading(false);
+      return;
+    }
 
     if (!name || !email) {
       setMessage('Name and email are required.');
@@ -48,9 +58,8 @@ export default function FaceRegisterPage() {
       return;
     }
 
-    const embedding = Array.from(detection.descriptor); // face vector
+    const embedding = Array.from(detection.descriptor);
 
-    // Send to backend
     const res = await fetch('/api/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -104,5 +113,3 @@ export default function FaceRegisterPage() {
     </div>
   );
 }
-
-
