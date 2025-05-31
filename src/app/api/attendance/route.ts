@@ -1,30 +1,23 @@
-// app/api/attendance/route.ts
-
-import { PrismaClient } from "@prisma/client";
+// pages/api/attendance.ts
+import { NextApiRequest, NextApiResponse } from 'next';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export async function GET() {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method === 'GET') {
     try {
-        const attendance = await prisma.attendance.findMany({
-            include: {
-                user: {
-                    select: {
-                        name: true,
-                    },
-                },
-            },
-        });
-
-        return new Response(JSON.stringify(attendance), {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-        });
+      const attendance = await prisma.attendance.findMany({
+        include: {
+          user: { select: { name: true } },
+        },
+      });
+      res.status(200).json(attendance);
     } catch (error) {
-        console.error("Attendance fetch error:", error);
-        return new Response(
-            JSON.stringify({ message: "Internal Server Error" }),
-            { status: 500, headers: { "Content-Type": "application/json" } }
-        );
+      console.error(error);
+      res.status(500).json({ message: 'Internal Server Error' });
     }
+  } else {
+    res.status(405).json({ message: 'Method Not Allowed' });
+  }
 }
