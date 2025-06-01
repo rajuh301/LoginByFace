@@ -1,8 +1,10 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@prisma/client/extension";
 
 const prisma = new PrismaClient();
 
-// GET: Fetch all attendance records with user name
+
+
+
 export async function GET() {
     try {
         const attendance = await prisma.attendance.findMany({
@@ -17,13 +19,12 @@ export async function GET() {
 
         return new Response(JSON.stringify(attendance), {
             status: 200,
-            headers: { "Content-Type": "application/json" },
+            headers: { 'Content-Type': 'application/json' },
         });
     } catch (error) {
-        console.error(error);
-        return new Response(
-            JSON.stringify({ message: "Internal Server Error" }),
-            { status: 500 }
-        );
+        console.error('[GET /api/attendance]', error);
+        return new Response(JSON.stringify({ message: 'Internal Server Error' }), {
+            status: 500,
+        });
     }
 }
