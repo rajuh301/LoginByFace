@@ -10,6 +10,7 @@ type User = {
 
 export default function FaceLogin() {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const loginAttemptedRef = useRef(false);
   const successAudioRef = useRef<HTMLAudioElement>(null);
   const failureAudioRef = useRef<HTMLAudioElement>(null);
@@ -59,12 +60,23 @@ export default function FaceLogin() {
     const interval = setInterval(async () => {
       if (loginAttemptedRef.current || !videoRef.current) return;
 
+      const video = videoRef.current;
+
       const detection = await faceapi
-        .detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions())
+        .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
         .withFaceLandmarks()
         .withFaceDescriptor();
 
       if (detection) {
+        // Draw landmarks and box
+        if (canvasRef.current) {
+          const dims = faceapi.matchDimensions(canvasRef.current, video, true);
+          const resizedDetections = faceapi.resizeResults(detection, dims);
+          canvasRef.current.getContext('2d')?.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+          faceapi.draw.drawDetections(canvasRef.current, resizedDetections);
+          faceapi.draw.drawFaceLandmarks(canvasRef.current, resizedDetections);
+        }
+
         loginAttemptedRef.current = true;
         clearInterval(interval);
         setIsLoading(true);
@@ -79,14 +91,20 @@ export default function FaceLogin() {
           const data = await res.json();
           setResult(data.message || data.error);
 
-          const audioToPlay = data.user ? successAudioRef.current : failureAudioRef.current;
-
-          if (data.user) setUser(data.user);
-
-          await audioToPlay?.play();
-          audioToPlay?.addEventListener('ended', () => {
-            window.location.reload();
-          });
+          // Stop and reset other audio
+          if (data.user) {
+            setUser(data.user);
+            failureAudioRef.current?.pause();
+            failureAudioRef.current!.currentTime = 0;
+            await successAudioRef.current?.play();
+            successAudioRef.current?.addEventListener('ended', () => {
+              window.location.reload();
+            });
+          } else {
+            successAudioRef.current?.pause();
+            successAudioRef.current!.currentTime = 0;
+            await failureAudioRef.current?.play();
+          }
         } catch (err) {
           console.error('Login error:', err);
           setResult('Error submitting data');
@@ -102,23 +120,31 @@ export default function FaceLogin() {
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <video
-        ref={videoRef}
-        autoPlay
-        muted
-        width="480"
-        height="360"
-        className="rounded shadow-md"
-      />
+      <div className="relative">
+        <video
+          ref={videoRef}
+          autoPlay
+          muted
+          width="480"
+          height="360"
+          className="rounded shadow-md"
+        />
+        <canvas
+          ref={canvasRef}
+          width="480"
+          height="360"
+          className="absolute top-0 left-0 z-10"
+        />
+      </div>
 
       <audio ref={successAudioRef} src="/audio/success.mp3" />
       <audio ref={failureAudioRef} src="/audio/failure.mp3" />
 
-      {isLoading && <p className="text-sm text-blue-600">Checking face...</p>}
+      {isLoading && <p className="text-sm text-blue-600 animate-pulse">Scanning face...</p>}
       {result && <p className="text-sm text-gray-700">{result}</p>}
 
       {user && (
-        <div className="text-center">
+        <div className="text-center mt-2">
           <p><strong>Name:</strong> {user.name}</p>
           <p><strong>Email:</strong> {user.email}</p>
         </div>
